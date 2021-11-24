@@ -1,2 +1,2 @@
 # NEU-SampleCPU
-Experiment of CA class
+目标为实现一个CPU的仿真
