@@ -12,9 +12,9 @@ module EX(
     output wire data_sram_en,
     output wire [3:0] data_sram_wen,
     output wire [31:0] data_sram_addr,
-    output wire [31:0] data_sram_wdata
+    output wire [31:0] data_sram_wdata,
 
-    //数据相关处理
+    //data correlation
     output wire [`EX_TO_MEM_WD-1:0] ex_to_id_bus
 );
 
@@ -87,6 +87,16 @@ module EX(
     assign ex_result = alu_result;
 
     assign ex_to_mem_bus = {
+        ex_pc,          // 75:44
+        data_ram_en,    // 43
+        data_ram_wen,   // 42:39
+        sel_rf_res,     // 38
+        rf_we,          // 37
+        rf_waddr,       // 36:32
+        ex_result       // 31:0
+    };
+
+    assign ex_to_id_bus = {
         ex_pc,          // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39

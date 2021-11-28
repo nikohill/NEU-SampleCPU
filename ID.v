@@ -9,18 +9,18 @@ module ID(
 
     input wire [`IF_TO_ID_WD-1:0] if_to_id_bus,
 
-    input wire [31:0] inst_sram_rdata,
+    input wire [31:0] inst_sram_rdata,  //instruction from 'IF.v'
 
     input wire [`WB_TO_RF_WD-1:0] wb_to_rf_bus,
 
     output wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
-    output wire [`BR_WD-1:0] br_bus 
+    output wire [`BR_WD-1:0] br_bus,
 
-    //数据相关处理
-    input wire [`EX_TO_MEM_WD-1:0] ex_to_id_bus  //ex-->id
+    //data correlation
+    input wire [`EX_TO_MEM_WD-1:0] ex_to_id_bus,  //ex-->id
 
-    input wire [`MEM_TO_WB_WD-1:0] mem_to_id_bus  //mem-->id
+    input wire [`MEM_TO_WB_WD-1:0] mem_to_id_bus,  //mem-->id
 
     input wire [`WB_TO_RF_WD-1:0] wb_to_id_bus  //wb-->id
 );
@@ -112,6 +112,7 @@ module ID(
     assign sel = inst[2:0];
 
     wire inst_ori, inst_lui, inst_addiu, inst_beq;
+    wire inst_add, inst_addi, inst_addu;
 
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
@@ -144,7 +145,9 @@ module ID(
     assign inst_addiu   = op_d[6'b00_1001];
     assign inst_beq     = op_d[6'b00_0100];
 
-
+    assign inst_add          = op_d[6'b00_0000];
+    assign inst_addi         = op_d[6'b00_1000];
+    assign inst_addu         = op_d[6'b00_0000];
 
     // rs to reg1
     assign sel_alu_src1[0] = inst_ori | inst_addiu;
@@ -215,8 +218,52 @@ module ID(
                     | {5{sel_rf_dst[2]}} & 32'd31;
 
     // 0 from alu_res ; 1 from ld_res
-    assign sel_rf_res = 1'b0; 
+    assign sel_rf_res = 1'b0;
 
+
+    //data correlation start
+    // we just use six of these variables, maybe after we will use the others
+    wire [31:0] forwarding_ex_pc;
+    wire forwarding_data_ram_en;
+    wire [3:0] forwarding_data_ram_wen;
+    wire forwarding_sel_rf_res;
+    wire forwarding_ex_rf_we;             //main use
+    wire [4:0] forwarding_ex_rf_waddr;    //main use
+    wire [31:0] forwarding_ex_result;     //main use
+
+    wire [31:0] forwarding_mem_pc;
+    wire forwarding_mem_rf_we;                //main use
+    wire [4:0] forwarding_mem_rf_waddr;   //main use
+    wire [31:0] forwarding_mem_rf_wdata;  //main use
+
+    assign {
+        forwarding_ex_pc,          // 75:44
+        forwarding_data_ram_en,    // 43
+        forwarding_data_ram_wen,   // 42:39
+        forwarding_sel_rf_res,     // 38
+        forwarding_ex_rf_we,          // 37
+        forwarding_ex_rf_waddr,       // 36:32
+        forwarding_ex_result       // 31:0
+    } = ex_to_id_bus;
+
+    assign {
+        forwarding_mem_pc,    //41:38
+        forwarding_mem_rf_we,     //37
+        forwarding_mem_rf_waddr,  //36:32
+        forwarding_mem_rf_wdata   //31:0
+    } = mem_to_id_bus;
+
+    assign selected_rdata1 = (forwarding_ex_rf_we & (forwarding_ex_rf_waddr == rs)) ? forwarding_ex_result
+                    :(forwarding_mem_rf_we & (forwarding_mem_rf_waddr == rs)) ? forwarding_mem_rf_wdata
+                    :rdata1;
+
+    assign selected_rdata2 = (forwarding_ex_rf_we & (forwarding_ex_rf_waddr == rt)) ? forwarding_ex_result
+                    :(forwarding_mem_rf_we & (forwarding_mem_rf_waddr == rt)) ? forwarding_mem_rf_wdata
+                    :rdata2;
+    
+    //data correlation end
+
+    
     assign id_to_ex_bus = {
         id_pc,          // 158:127
         inst,           // 126:95
@@ -228,8 +275,8 @@ module ID(
         rf_we,          // 70
         rf_waddr,       // 69:65
         sel_rf_res,     // 64
-        rdata1,         // 63:32
-        rdata2          // 31:0
+        selected_rdata1,         // 63:32
+        selected_rdata2          // 31:0
     };
 
 
