@@ -111,7 +111,9 @@ module ID(
     assign offset = inst[15:0];
     assign sel = inst[2:0];
 
-    wire inst_ori, inst_lui, inst_addiu, inst_beq, inst_subu, inst_addu, inst_jal;
+    wire inst_ori, inst_lui, inst_addiu;
+    wire inst_beq, inst_subu, inst_addu;
+    wire inst_jal;
 
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
