@@ -9,13 +9,13 @@ module ID(
 
     input wire [`IF_TO_ID_WD-1:0] if_to_id_bus,
 
-    input wire [31:0] inst_sram_rdata,  //instruction from 'IF.v'
+    input wire [31:0] inst_sram_rdata,
 
     input wire [`WB_TO_RF_WD-1:0] wb_to_rf_bus,
 
     output wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
-    output wire [`BR_WD-1:0] br_bus,
+    output wire [`BR_WD-1:0] br_bus, 
 
     //data correlation
     input wire [`EX_TO_MEM_WD-1:0] ex_to_id_bus,  //ex-->id
@@ -112,13 +112,11 @@ module ID(
     assign sel = inst[2:0];
 
     wire inst_ori, inst_lui, inst_addiu, inst_beq;
-    wire inst_add, inst_addi, inst_addu;
 
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
     wire op_sll, op_srl, op_sra, op_lui;
 
-    //turn to one-hot code
     decoder_6_64 u0_decoder_6_64(
     	.in  (opcode  ),
         .out (op_d )
@@ -145,9 +143,7 @@ module ID(
     assign inst_addiu   = op_d[6'b00_1001];
     assign inst_beq     = op_d[6'b00_0100];
 
-    assign inst_add          = op_d[6'b00_0000];
-    assign inst_addi         = op_d[6'b00_1000];
-    assign inst_addu         = op_d[6'b00_0000];
+
 
     // rs to reg1
     assign sel_alu_src1[0] = inst_ori | inst_addiu;
@@ -200,7 +196,7 @@ module ID(
 
 
 
-    // regfile sotre enable
+    // regfile store enable
     assign rf_we = inst_ori | inst_lui | inst_addiu;
 
 
@@ -218,8 +214,8 @@ module ID(
                     | {5{sel_rf_dst[2]}} & 32'd31;
 
     // 0 from alu_res ; 1 from ld_res
-    assign sel_rf_res = 1'b0;
-
+    assign sel_rf_res = 1'b0; 
+    
 
     //data correlation start
     // we just use six of these variables, maybe after we will use the others
@@ -263,7 +259,6 @@ module ID(
     
     //data correlation end
 
-    
     assign id_to_ex_bus = {
         id_pc,          // 158:127
         inst,           // 126:95
@@ -275,8 +270,8 @@ module ID(
         rf_we,          // 70
         rf_waddr,       // 69:65
         sel_rf_res,     // 64
-        selected_rdata1,         // 63:32
-        selected_rdata2          // 31:0
+        rdata1,         // 63:32
+        rdata2          // 31:0
     };
 
 

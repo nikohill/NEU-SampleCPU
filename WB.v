@@ -12,7 +12,7 @@ module WB(
     output wire [31:0] debug_wb_pc,
     output wire [3:0] debug_wb_rf_wen,
     output wire [4:0] debug_wb_rf_wnum,
-    output wire [31:0] debug_wb_rf_wdata, 
+    output wire [31:0] debug_wb_rf_wdata,
 
     //data correlation
     output wire [`WB_TO_RF_WD-1:0] wb_to_id_bus
@@ -43,7 +43,7 @@ module WB(
     assign {
         wb_pc,
         rf_we,
-        rf_waddr, 
+        rf_waddr,
         rf_wdata
     } = mem_to_wb_bus_r;
 
