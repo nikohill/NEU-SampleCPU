@@ -111,7 +111,7 @@ module ID(
     assign offset = inst[15:0];
     assign sel = inst[2:0];
 
-    wire inst_ori, inst_lui, inst_addiu, inst_beq, inst_subu, inst_addu, inst_jal;
+    wire inst_ori, inst_lui, inst_addiu, inst_beq, inst_subu, inst_addu, inst_jal, inst_jr;
 
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
@@ -145,8 +145,9 @@ module ID(
     assign inst_subu    = op_d[6'b00_0000] & func_d[6'b10_0011];
     assign inst_addu    = op_d[6'b00_0000] & func_d[6'b10_0001];
     assign inst_jal     = op_d[6'b00_0011];
+    assign inst_jr      = op_d[6'b00_0000] & func_d[6'b00_1000];
     // rs to reg1
-    assign sel_alu_src1[0] = inst_ori | inst_addiu | inst_subu | inst_addu;
+    assign sel_alu_src1[0] = inst_ori | inst_addiu | inst_subu | inst_addu | inst_jr ;
 
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal;
@@ -243,20 +244,23 @@ module ID(
         forwarding_ex_rf_waddr,       // 36:32
         forwarding_ex_result       // 31:0
     } = ex_to_id_bus;
-
     assign {
         forwarding_mem_pc,    //41:38
         forwarding_mem_rf_we,     //37
         forwarding_mem_rf_waddr,  //36:32
         forwarding_mem_rf_wdata   //31:0
     } = mem_to_id_bus;
+    
+ 
 
     assign selected_rdata1 = (forwarding_ex_rf_we & (forwarding_ex_rf_waddr == rs)) ? forwarding_ex_result
                     :(forwarding_mem_rf_we & (forwarding_mem_rf_waddr == rs)) ? forwarding_mem_rf_wdata
+                    :(wb_rf_we & (wb_rf_waddr == rs)) ? wb_rf_wdata
                     :rdata1;
 
     assign selected_rdata2 = (forwarding_ex_rf_we & (forwarding_ex_rf_waddr == rt)) ? forwarding_ex_result
                     :(forwarding_mem_rf_we & (forwarding_mem_rf_waddr == rt)) ? forwarding_mem_rf_wdata
+                    :(wb_rf_we & (wb_rf_waddr == rt)) ? wb_rf_wdata
                     :rdata2;
     
     //data correlation end
@@ -287,10 +291,13 @@ module ID(
     wire [31:0] pc_plus_4;
     assign pc_plus_4 = id_pc + 32'h4;
    
-    assign rs_eq_rt = (rdata1 == rdata2);
+    assign rs_eq_rt = (selected_rdata1 == selected_rdata2);
 
-    assign br_e = inst_beq & rs_eq_rt | inst_jal;
-    assign br_addr = inst_beq ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0 | inst_jal ? {pc_plus_4[31:28],inst[25:0], 2'b0} :32'b0 ;
+    assign br_e = inst_beq & rs_eq_rt | inst_jal | inst_jr ;
+    assign br_addr = inst_beq ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) 
+                   : inst_jal ? {pc_plus_4[31:28],inst[25:0],2'b0} 
+                   : inst_jr  ?  rdata1
+                   : 32'b0;
 
     assign br_bus = {
         br_e,
