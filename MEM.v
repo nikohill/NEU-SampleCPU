@@ -6,7 +6,7 @@ module MEM(
     input wire [`StallBus-1:0] stall,
 
     input wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus,
-    input wire [31:0] data_sram_rdata,
+    input wire [31:0] data_sram_rdata,  //read from memory
 
     output wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus,
 
@@ -51,8 +51,8 @@ module MEM(
         ex_result       // 31:0
     } =  ex_to_mem_bus_r;
 
-
-
+    assign mem_result = data_sram_rdata;
+    
     assign rf_wdata = sel_rf_res ? mem_result : ex_result;
 
     assign mem_to_wb_bus = {

@@ -5,7 +5,7 @@ module ID(
     // input wire flush,
     input wire [`StallBus-1:0] stall,
     
-    output wire stallreq,
+    output wire stallreq,   //stall
 
     input wire [`IF_TO_ID_WD-1:0] if_to_id_bus,
 
@@ -22,7 +22,9 @@ module ID(
 
     input wire [`MEM_TO_WB_WD-1:0] mem_to_id_bus,  //mem-->id
 
-    input wire [`WB_TO_RF_WD-1:0] wb_to_id_bus  //wb-->id
+    input wire [`WB_TO_RF_WD-1:0] wb_to_id_bus,  //wb-->id
+
+    input wire stall_en
 );
 
     reg [`IF_TO_ID_WD-1:0] if_to_id_bus_r;
@@ -111,11 +113,11 @@ module ID(
     assign offset = inst[15:0];
     assign sel = inst[2:0];
 
-    // instructions' declaration area start
-    wire inst_ori, inst_lui, inst_addiu;
+    // instructions' declaration part start
+    wire inst_ori, inst_lui , inst_addiu;
     wire inst_beq, inst_subu, inst_addu;
-    wire inst_jal, inst_jr, inst_sll;
-    wire inst_or, inst_lw;
+    wire inst_jal, inst_jr  , inst_sll;
+    wire inst_or , inst_lw  , inst_xor;
     // end
 
     wire op_add, op_sub, op_slt, op_sltu;
@@ -199,23 +201,24 @@ module ID(
 
 
     // load and store enable
-    assign data_ram_en = 1'b0;
+    assign data_ram_en = inst_lw;   //0:store, 1:load
 
     // write enable
-    assign data_ram_wen = 1'b0;
+    //assign data_ram_wen = 1'b0;
+    assign data_ram_wen = inst_lw ? 4'b0 : 4'b1;    //4'b0: load  4'b1: store
 
 
 
     // regfile store enable
     assign rf_we = inst_ori | inst_lui | inst_addiu | inst_subu | inst_addu | inst_jal | inst_sll
-                    | inst_or;
+                    | inst_or | inst_lw;
 
 
 
     // store in [rd]
     assign sel_rf_dst[0] = inst_subu | inst_addu | inst_sll | inst_or;
     // store in [rt] 
-    assign sel_rf_dst[1] = inst_ori | inst_lui | inst_addiu;
+    assign sel_rf_dst[1] = inst_ori | inst_lui | inst_addiu | inst_lw;
     // store in [31]
     assign sel_rf_dst[2] = inst_jal;
 
@@ -225,8 +228,14 @@ module ID(
                     | {5{sel_rf_dst[2]}} & 32'd31;
 
     // 0 from alu_res ; 1 from ld_res
-    assign sel_rf_res = 1'b0; 
+    assign sel_rf_res = inst_lw;
     
+
+    //stall part start
+    assign stallreq = ((stall_en) & ((rs == forwarding_ex_rf_waddr) | (rt == forwarding_ex_rf_waddr))) ? `Stop
+                    : `NoStop;
+
+    //end
 
     //data correlation start
     // we just use six of these variables, maybe after we will use the others
