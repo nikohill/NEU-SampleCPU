@@ -5,6 +5,7 @@ module ID(
     // input wire flush,
     input wire [`StallBus-1:0] stall,
     
+    
     output wire stallreq,   //stall
 
     input wire [`IF_TO_ID_WD-1:0] if_to_id_bus,
