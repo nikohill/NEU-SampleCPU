@@ -16,7 +16,8 @@ module ID(
     output wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
     output wire [`BR_WD-1:0] br_bus, 
-
+ 
+ 
     //data correlation
     input wire [`EX_TO_MEM_WD-1:0] ex_to_id_bus,  //ex-->id
 
